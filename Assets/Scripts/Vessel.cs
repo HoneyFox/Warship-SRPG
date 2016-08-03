@@ -131,7 +131,7 @@ public class Vessel : MonoBehaviour
 				List<Vessel> targets = BattleManager.instance.sides[1 - side];
 				if (targets.Count > 0)
 				{
-					int maxAircraftLaunched = 3 + (gunPower < 100 ? gunPower / 5 : (gunPower - 100) / 20 + 20);
+					int maxAircraftLaunched = 3 + (gunPower < 80 ? gunPower / 5 : (gunPower - 80) / 20 + 16);
 					bool aircraftAvailable = false;
 					for(int i = 0; i < aircraftSlots.Length; ++i)
 					{			
@@ -215,6 +215,6 @@ public class Vessel : MonoBehaviour
 		}
 		ownPhases.Remove(vp);
 		CheckPhase();
-		BattleManager.instance.Invoke("ExecuteNextPhase", 1f);
+		BattleManager.instance.Invoke("ExecuteNextPhase", 0.25f);
 	}
 }

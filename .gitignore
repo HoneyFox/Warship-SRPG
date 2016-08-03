@@ -165,6 +165,7 @@ pip-log.txt
 # Unity & MonoDevelop
 Library/
 obj/
+Temp/
 *.userprefs
 
 # Builds

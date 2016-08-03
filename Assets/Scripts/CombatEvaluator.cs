@@ -111,7 +111,7 @@ public static class CombatEvaluator
 		int origAttackerGunPower = attacker.gunPower;
 		attacker.gunPower = Mathf.FloorToInt(attacker.gunPower * (8f + Mathf.Sqrt(attacker.hp)));
 		int origDefenderDodge = defender.dodge;
-		defender.dodge = Mathf.FloorToInt(defender.dodge * 0.75f);
+		defender.dodge = Mathf.FloorToInt(defender.dodge * 0.2f + Mathf.Sqrt(defender.antiAir) * 4f);
 
 		int dmg = DamageByGun (attacker, defender, out isCritical);
 		int damage;
@@ -134,7 +134,7 @@ public static class CombatEvaluator
 		if (distance > attacker.torpedoRange)
 			return -1;
 		
-		float accuracy = attacker.accuracy * 0.05f / (1f + Mathf.Log10(defender.dodge)) / Mathf.Sqrt(defender.actualSpeed / 20f);
+		float accuracy = attacker.accuracy * 0.05f / (1f + Mathf.Log10(defender.dodge + 1)) / Mathf.Sqrt(defender.actualSpeed / 20f);
 		accuracy *= (0.5f + Mathf.Sqrt(1 - distance / attacker.actualSight));
 		if (distance > attacker.actualSight)
 			accuracy *= (0.5f + attacker.luck * 0.01f);
