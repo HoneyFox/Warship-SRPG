@@ -68,6 +68,8 @@ public static class CombatEvaluator
 
 	public static void AirCombat(Aircraft attacker, Aircraft defender)
 	{
+		bool attackerIsKamikaze = attacker.kamikaze;
+
 		// Note that some bombers/torpedo bombers also have antiAir so they can shoot back in air combat.
 		float attackerStrength = attacker.antiAir * attacker.hp * attacker.hp * UnityEngine.Random.Range(0.9f, 1.1f);
 		float defenderStrength = defender.antiAir * defender.hp * defender.hp * UnityEngine.Random.Range(0.9f, 1.1f);
@@ -78,27 +80,30 @@ public static class CombatEvaluator
 		if (rndAS > rndDS * 5f)
 		{
 			// Defender is overwhelmed.
-			defender.hp = 0;
+			defender.hp = attackerIsKamikaze ? Mathf.Max(0, defender.hp - attacker.hp) : 0;
 			attacker.hp = Mathf.FloorToInt(Mathf.Sqrt((rndAS - rndDS) / rndAS) * attacker.hp);
 		}
 		else if(rndAS < rndDS / 5f)
 		{
 			// Attacker is overwhelmed.
+			int defHp = Mathf.FloorToInt(Mathf.Sqrt((rndDS - rndAS) / rndDS) * defender.hp);
+			defender.hp = attackerIsKamikaze ? (Mathf.Max(defHp, defender.hp - attacker.hp)) : defHp;
 			attacker.hp = 0;
-			defender.hp = Mathf.FloorToInt(Mathf.Sqrt((rndDS - rndAS) / rndDS) * defender.hp);
 		}
 		else
 		{
 			// Lanchester equation.
 			if(rndDS < rndAS)
 			{
+				int defHp = Mathf.FloorToInt(defender.hp * 0.2f);
+				defender.hp = attackerIsKamikaze ? (Mathf.Max(defHp, defender.hp - attacker.hp)) : defHp;
 				attacker.hp = Mathf.FloorToInt(Mathf.Sqrt((rndAS - rndDS) / rndAS) * attacker.hp);
-				defender.hp = Mathf.FloorToInt(defender.hp * 0.2f);
 			}
 			else
 			{
+				int defHp = Mathf.FloorToInt(Mathf.Sqrt((rndDS - rndAS) / rndDS) * defender.hp);
+				defender.hp = attackerIsKamikaze ? (Mathf.Max(defHp, defender.hp - attacker.hp)) : defHp;
 				attacker.hp = Mathf.FloorToInt(attacker.hp * 0.2f);
-				defender.hp = Mathf.FloorToInt(Mathf.Sqrt((rndDS - rndAS) / rndDS) * defender.hp);
 			}
 		}
 	}

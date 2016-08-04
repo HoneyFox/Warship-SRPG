@@ -47,9 +47,11 @@ public class SceneManager : MonoBehaviour {
 		"Prefabs/Ships/Carriers/Zeppelin",
 		"Prefabs/Ships/Carriers/Peter Strasser",
 		"Prefabs/Ships/Destroyers/Le Fantasque",
+		"Prefabs/Ships/Destroyers/Gyatt",
 		"Prefabs/Ships/HeavyCruisers/Kumano",
 		"Prefabs/Ships/HeavyCruisers/Mogami",
 		"Prefabs/Ships/HeavyCruisers/Quincy",
+		"Prefabs/Ships/Submarines/U81",
 	};
 
 	string GetVesselName(string prefabPath) 
@@ -87,8 +89,7 @@ public class SceneManager : MonoBehaviour {
 
 		if (battleStarted == true) return;
 
-		GUILayout.BeginArea(new Rect((Screen.width - 600f) * 0.5f, 0f, 600f, Screen.height));
-		GUILayout.BeginVertical(GUILayout.Width(600f));
+		GUILayout.BeginArea(new Rect((Screen.width - 650f) * 0.5f, 0f, 650f, Screen.height));
 		{
 			GUILayout.BeginHorizontal(GUILayout.Width(600f));
 			{
@@ -97,7 +98,7 @@ public class SceneManager : MonoBehaviour {
 					GUILayout.Label("Side A", centerStyle, GUILayout.ExpandWidth(true));
 					for (int i = 0; i < sideA.Count; ++i)
 					{
-						bool remove = GUILayout.Button(GetVesselName(sideA[i]), GUILayout.Width(200f));
+						bool remove = GUILayout.Button(GetVesselName(sideA[i]), GUILayout.ExpandWidth(true));
 						if (remove)
 						{
 							sideA.RemoveAt(i);
@@ -114,9 +115,9 @@ public class SceneManager : MonoBehaviour {
 					{
 						GUILayout.BeginHorizontal();
 						{
-							bool addToSideA = GUILayout.Button("<", GUILayout.Width(50f));
-							GUILayout.Label(GetVesselName(vesselPrefab), centerStyle, GUILayout.Width(100f));
-							bool addToSideB = GUILayout.Button(">", GUILayout.Width(50f));
+							bool addToSideA = GUILayout.Button("<", GUILayout.Width(40f));
+							GUILayout.Label(GetVesselName(vesselPrefab), centerStyle, GUILayout.ExpandWidth(true));
+							bool addToSideB = GUILayout.Button(">", GUILayout.Width(40f));
 
 							if (addToSideA)
 								sideA.Add(vesselPrefab);
@@ -141,7 +142,7 @@ public class SceneManager : MonoBehaviour {
 					GUILayout.Label("Side B", centerStyle, GUILayout.ExpandWidth(true));
 					for (int i = 0; i < sideB.Count; ++i)
 					{
-						bool remove = GUILayout.Button(GetVesselName(sideB[i]), GUILayout.Width(200f));
+						bool remove = GUILayout.Button(GetVesselName(sideB[i]), GUILayout.ExpandWidth(true));
 						if (remove)
 						{
 							sideB.RemoveAt(i);
@@ -153,7 +154,6 @@ public class SceneManager : MonoBehaviour {
 			}
 			GUILayout.EndHorizontal();
 		}
-		GUILayout.EndVertical();
 		GUILayout.EndArea();
 	}
 

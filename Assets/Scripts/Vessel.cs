@@ -21,6 +21,7 @@ public class Vessel : MonoBehaviour
 {
 	protected List<VesselPhase> ownPhases = new List<VesselPhase>();
 
+	public EVesselType vesselType;
 	public int side;
 
 	// Vessel properties.
@@ -128,52 +129,99 @@ public class Vessel : MonoBehaviour
 				BattleManager.instance.AddPhase(actionPhase);
 				break;
 			case EPhaseType.ACTION:
-				List<Vessel> targets = BattleManager.instance.sides[1 - side];
-				if (targets.Count > 0)
+				List<Vessel> targets = this.GetTargets(VesselActions.ETargetType.SURF | VesselActions.ETargetType.SUB);
+				if (targets.Count > 0 && UnityEngine.Random.Range(0, this.maxHp * 0.6f) <= this.hp)
 				{
-					int maxAircraftLaunched = 3 + (gunPower < 80 ? gunPower / 5 : (gunPower - 80) / 20 + 16);
-					bool aircraftAvailable = false;
-					for(int i = 0; i < aircraftSlots.Length; ++i)
-					{			
-						if(aircraftSlots[i] > 0 && aircraftLaunched[i] == false)
+					bool hasLaunchedAircraft = false;
+					int maxAircraftLaunched = this.GetMaxAircraftLaunched();
+					if (targets.Any((Vessel v) => v.vesselType == EVesselType.CV || v.vesselType == EVesselType.CVL) == false)
+					{ 
+						// There's no CV/CVL and we don't need to worry about air-strikes.
+						Vessel target = targets[UnityEngine.Random.Range(0, targets.Count)];
+						if (target.vesselType == EVesselType.SS)
 						{
-							aircraftAvailable = true;
-							break;
-						}
-					}
-					if (aircraftAvailable && hp >= maxHp * 0.5)
-					{
-						// The vessel can launch aircrafts.
-						for(int i = 0; i < aircraftSlots.Length; ++i)
-						{
-							if(aircraftSlots[i] > 0 && aircraftLaunched[i] == false)
+							for (int i = 0; i < aircraftSlots.Length; ++i)
 							{
-								Aircraft aircraft = aircrafts[i];
-								Aircraft instance = Instantiate(aircraft, this.transform.position, this.transform.rotation) as Aircraft;
-								instance.gameObject.name = this.gameObject.name + "'s " + aircraft.gameObject.name + "<" + (i+1).ToString() + ">";
-								instance.maxHp = instance.hp = Mathf.Min(aircraftSlots[i], maxAircraftLaunched);
-								instance.side = this.side;
-								instance.carrier = this;
-								instance.carrierSlot = i;
-								instance.luck = this.luck;
-								instance.accuracy = this.accuracy;
-								instance.fuel = instance.maxFuel;
-								aircraftSlots[i] -= instance.hp;
-								aircraftLaunched[i] = true;
-								Debug.Log("@" + vp.battleTime.ToString("F1") + ": " 
-							          + this.gameObject.name + " launched " + aircraft.gameObject.name
-							          + "x" + instance.hp.ToString()
-							    );
-								break;
+								if (aircrafts[i].aircraftType == EAircraftType.ASW_BOMBER)
+								{
+									Aircraft aircraft = this.LaunchAircraft(i);
+									if (aircraft != null)
+									{
+										Debug.Log("@" + vp.battleTime.ToString("F1") + ": "
+											  + this.gameObject.name + " launched " + aircrafts[i].gameObject.name
+											  + "x" + aircraft.hp.ToString()
+										);
+										hasLaunchedAircraft = true;
+										break;
+									}
+								}
+							}
+						}
+						if (hasLaunchedAircraft == false)
+						{
+							for (int i = 0; i < aircraftSlots.Length; ++i)
+							{
+								if (aircrafts[i].aircraftType == EAircraftType.BOMBER || aircrafts[i].aircraftType == EAircraftType.TORPEDO_BOMBER)
+								{
+									Aircraft aircraft = this.LaunchAircraft(i);
+									if (aircraft != null)
+									{
+										Debug.Log("@" + vp.battleTime.ToString("F1") + ": "
+											  + this.gameObject.name + " launched " + aircrafts[i].gameObject.name
+											  + "x" + aircraft.hp.ToString()
+										);
+										hasLaunchedAircraft = true;
+										break;
+									}
+								}
 							}
 						}
 					}
 					else
+					{				
+						bool aircraftAvailable = this.CheckAircraftAvailable();
+						if (aircraftAvailable && maxAircraftLaunched > 0)
+						{
+							// The vessel can launch aircrafts.
+							for (int i = 0; i < aircraftSlots.Length; ++i)
+							{
+								Aircraft aircraft = this.LaunchAircraft(i);
+								if (aircraft != null)
+								{
+									Debug.Log("@" + vp.battleTime.ToString("F1") + ": "
+										  + this.gameObject.name + " launched " + aircrafts[i].gameObject.name
+										  + "x" + aircraft.hp.ToString()
+									);
+									hasLaunchedAircraft = true;
+									break;
+								}
+							}
+						}
+					}
+					
+					if (hasLaunchedAircraft == false)
 					{
 						Vessel target = targets[UnityEngine.Random.Range(0, targets.Count)];
 						bool isCritical;
 
-						if(UnityEngine.Random.Range(0, gunPower + torpedoPower) < gunPower)
+						bool canUseGun = this.CheckRange(target, VesselActions.EWeaponType.GUN);
+						bool canUseTorpedo = this.CheckRange(target, VesselActions.EWeaponType.TORPEDO);
+						bool canUseASW = this.CheckRange(target, VesselActions.EWeaponType.ASW);
+
+						if (canUseASW && target.vesselType == EVesselType.SS)
+						{
+							int origHp = hp;
+							int damage = CombatEvaluator.DamageByASW(this, target, out isCritical);
+							Debug.Log("@" + vp.battleTime.ToString("F1") + ": " 
+						          + this.gameObject.name + " attacked " + target.gameObject.name
+						          + " with depth-charges: " + damage.ToString()
+						          + (isCritical ? " Critical!" : ""));
+
+							this.OnDamaged(0);
+							target.OnDamaged(Mathf.Max(0, damage));
+							nextPhaseTime += actionPhasePeriod;
+						}
+						else if (UnityEngine.Random.Range(0, gunPower + torpedoPower) < gunPower)
 						{
 							int damage = CombatEvaluator.DamageByGun(this, target, out isCritical);
 							Debug.Log("@" + vp.battleTime.ToString("F1") + ": " 

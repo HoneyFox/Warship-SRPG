@@ -23,6 +23,8 @@ public class Aircraft : Vessel
 	public int maxFuel;
 	public int fuel;
 
+	public bool kamikaze;
+
 	public override void OnLeaveBattle()
 	{
 		SceneManager.instance.UnregisterVessel(this);
@@ -72,15 +74,16 @@ public class Aircraft : Vessel
 			}
 			break;
 		case EPhaseType.ACTION:
-			if (aircraftType == EAircraftType.FIGHTER && BattleManager.instance.sidesAC[1 - side].Count > 0)
+			List<Vessel> targets = this.GetTargets(VesselActions.ETargetType.AIR);
+			if (this.aircraftType == EAircraftType.FIGHTER && targets.Count > 0)
 			{
-				List<Aircraft> targets = BattleManager.instance.sidesAC[1 - side];
-
-				Aircraft target = targets[UnityEngine.Random.Range(0, targets.Count)];
+				Aircraft target = targets[UnityEngine.Random.Range(0, targets.Count)] as Aircraft;
 
 				int attackerHp = this.hp;
 				int defenderHp = target.hp;
 				CombatEvaluator.AirCombat(this, target);
+				if (kamikaze)
+					hp = 0;
 				Debug.Log("@" + vp.battleTime.ToString("F1") + ": " 
 					+ this.gameObject.name
 					+ "(" + attackerHp.ToString() + "->" + this.hp.ToString()
@@ -94,18 +97,38 @@ public class Aircraft : Vessel
 
 				nextPhaseTime += actionPhasePeriod;
 			}
-			else if(gunPower > 0 || torpedoPower > 0 || aswPower > 0)
+			else
 			{
-				List<Vessel> targets = BattleManager.instance.sides[1 - side];
+				targets = this.GetTargets(VesselActions.ETargetType.SURF | VesselActions.ETargetType.SUB);
 				if (targets.Count > 0)
 				{
 					Vessel target = targets[UnityEngine.Random.Range(0, targets.Count)];
 					bool isCritical;
-					
-					if(UnityEngine.Random.Range(0, gunPower + torpedoPower) < gunPower)
+
+					bool canUseGun = this.CheckRange(target, VesselActions.EWeaponType.BOMB);
+					bool canUseTorpedo = this.CheckRange(target, VesselActions.EWeaponType.AERIAL_TORPEDO);
+					bool canUseASW = this.CheckRange(target, VesselActions.EWeaponType.AERIAL_ASW);
+					if (canUseASW)
+					{
+						int origHp = hp;
+						int damage = CombatEvaluator.DamageByAerialASW(this, target, out isCritical);
+						if (kamikaze)
+							hp = 0; 
+						Debug.Log("@" + vp.battleTime.ToString("F1") + ": "
+								  + this.gameObject.name + "(" + origHp.ToString() + "->" + hp.ToString() + ") attacked " + target.gameObject.name
+								  + " with depth-charges: " + damage.ToString()
+								  + (isCritical ? " Critical!" : ""));
+
+						this.OnDamaged(0);
+						target.OnDamaged(Mathf.Max(0, damage));
+						nextPhaseTime += actionPhasePeriod;
+					}
+					else if(UnityEngine.Random.Range(0, (canUseGun ? gunPower : 0) + (canUseTorpedo ? torpedoPower : 0)) < (canUseGun ? gunPower : 0))
 					{
 						int origHp = hp;
 						int damage = CombatEvaluator.DamageByBomb(this, target, out isCritical);
+						if (kamikaze)
+							hp = 0;
 						Debug.Log("@" + vp.battleTime.ToString("F1") + ": " 
 						          + this.gameObject.name + "(" + origHp.ToString() + "->" + hp.ToString() + ") attacked " + target.gameObject.name
 						          + " with bombs: " + damage.ToString()
@@ -119,6 +142,8 @@ public class Aircraft : Vessel
 					{
 						int origHp = hp;
 						int damage = CombatEvaluator.DamageByAerialTorpedo(this, target, out isCritical);
+						if (kamikaze)
+							hp = 0;
 						Debug.Log("@" + vp.battleTime.ToString("F1") + ": " 
 						          + this.gameObject.name + "(" + origHp.ToString() + "->" + hp.ToString() + ") attacked " + target.gameObject.name
 						          + " with torpedos: " + damage.ToString()
@@ -157,6 +182,11 @@ public class Aircraft : Vessel
 
 	private void SetupRTBPhase()
 	{
+		if (kamikaze)
+		{
+			OnDamaged(int.MaxValue);
+			return;
+		};
 		nextPhaseTime += rtbPhasePeriod;
 		VesselPhase rtbPhase = new VesselPhase();
 		rtbPhase.owner = this;

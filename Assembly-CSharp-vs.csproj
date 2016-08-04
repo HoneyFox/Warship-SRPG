@@ -52,6 +52,7 @@
      <Compile Include="Assets\Scripts\LogDisplay.cs" />
      <Compile Include="Assets\Scripts\SceneManager.cs" />
      <Compile Include="Assets\Scripts\Vessel.cs" />
+     <Compile Include="Assets\Scripts\VesselActions.cs" />
      <Compile Include="Assets\Scripts\VesselPhase.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
