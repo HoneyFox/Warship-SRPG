@@ -108,7 +108,7 @@ public class Aircraft : Vessel
 					bool canUseGun = this.CheckRange(target, VesselActions.EWeaponType.BOMB);
 					bool canUseTorpedo = this.CheckRange(target, VesselActions.EWeaponType.AERIAL_TORPEDO);
 					bool canUseASW = this.CheckRange(target, VesselActions.EWeaponType.AERIAL_ASW);
-					if (canUseASW)
+					if (canUseASW && target.vesselType == EVesselType.SS)
 					{
 						int origHp = hp;
 						int damage = CombatEvaluator.DamageByAerialASW(this, target, out isCritical);
