@@ -28,13 +28,24 @@ public class Aircraft : Vessel
 	public override void OnLeaveBattle()
 	{
 		SceneManager.instance.UnregisterVessel(this);
-		BattleManager.instance.sides[this.side].Remove(this);
+		BattleManager.instance.sidesAC[this.side].Remove(this);
 		ownPhases.Clear();
 		if (carrier != null && carrier.isAlive)
 		{
 			carrier.aircraftLaunched[carrierSlot] = false;
 		}
 		Destroy(this.gameObject);
+	}
+
+	public override void CheckPhase()
+	{
+		if (isAlive)
+		{
+			if (ownPhases.Count == 0)
+			{
+				CreatePhase(EPhaseType.MOVE, nextMovePhaseTime);
+			}
+		}
 	}
 
 	public override void ExecutePhase(VesselPhase vp)
@@ -45,18 +56,13 @@ public class Aircraft : Vessel
 		case EPhaseType.MOVE:
 			//Debug.Log("@" + vp.battleTime.ToString("F1") + ": " + this.gameObject.name + " moved to new location.");
 			
-			nextPhaseTime += movePhasePeriod;
+			nextMovePhaseTime += movePhasePeriod;
 
 			if(aircraftType == EAircraftType.SURVEILLANCE)
 			{
 				if(fuel > 0)
 				{
-					VesselPhase movePhase = new VesselPhase();
-					movePhase.owner = this;
-					movePhase.phaseType = EPhaseType.MOVE;
-					movePhase.battleTime = nextPhaseTime;
-					ownPhases.Add(movePhase);
-					BattleManager.instance.AddPhase(movePhase);
+					CreatePhase(EPhaseType.MOVE, nextMovePhaseTime);
 				}
 				else 
 				{
@@ -65,21 +71,18 @@ public class Aircraft : Vessel
 			}
 			else 
 			{
-				VesselPhase actionPhase = new VesselPhase();
-				actionPhase.owner = this;
-				actionPhase.phaseType = EPhaseType.ACTION;
-				actionPhase.battleTime = nextPhaseTime;
-				ownPhases.Add(actionPhase);
-				BattleManager.instance.AddPhase(actionPhase);
+				CreatePhase(EPhaseType.ACTION, nextMovePhaseTime);
 			}
 			break;
 		case EPhaseType.ACTION:
-			List<Vessel> targets = this.GetTargets(VesselActions.ETargetType.AIR);
+			List<Vessel> targets = this.GetTargets(VesselActions.ETargetType.AIR, false);
 			if (this.aircraftType == EAircraftType.FIGHTER && targets.Count > 0)
 			{
 				Aircraft target = targets[UnityEngine.Random.Range(0, targets.Count)] as Aircraft;
 
 				int attackerHp = this.hp;
+				if (target == null)
+					Debug.LogError(targets.Count.ToString());
 				int defenderHp = target.hp;
 				CombatEvaluator.AirCombat(this, target);
 				if (kamikaze)
@@ -95,11 +98,11 @@ public class Aircraft : Vessel
 				this.OnDamaged(0);
 				target.OnDamaged(0);
 
-				nextPhaseTime += actionPhasePeriod;
+				nextMovePhaseTime += actionPhasePeriod;
 			}
 			else
 			{
-				targets = this.GetTargets(VesselActions.ETargetType.SURF | VesselActions.ETargetType.SUB);
+				targets = this.GetTargets(VesselActions.ETargetType.SURF | VesselActions.ETargetType.SUB, false);
 				if (targets.Count > 0)
 				{
 					Vessel target = targets[UnityEngine.Random.Range(0, targets.Count)];
@@ -121,7 +124,7 @@ public class Aircraft : Vessel
 
 						this.OnDamaged(0);
 						target.OnDamaged(Mathf.Max(0, damage));
-						nextPhaseTime += actionPhasePeriod;
+						nextMovePhaseTime += actionPhasePeriod;
 					}
 					else if(UnityEngine.Random.Range(0, (canUseGun ? gunPower : 0) + (canUseTorpedo ? torpedoPower : 0)) < (canUseGun ? gunPower : 0))
 					{
@@ -136,7 +139,7 @@ public class Aircraft : Vessel
 						
 						this.OnDamaged(0);
 						target.OnDamaged(Mathf.Max(0, damage));
-						nextPhaseTime += actionPhasePeriod;
+						nextMovePhaseTime += actionPhasePeriod;
 					}
 					else
 					{
@@ -150,12 +153,12 @@ public class Aircraft : Vessel
 						          + (isCritical ? " Critical!" : ""));
 						this.OnDamaged(0);
 						target.OnDamaged(Mathf.Max(0, damage));
-						nextPhaseTime += actionPhasePeriod;
+						nextMovePhaseTime += actionPhasePeriod;
 					}
 				}
 				else
 				{
-					nextPhaseTime += actionPhasePeriod;
+					nextMovePhaseTime += actionPhasePeriod;
 				}
 			}
 
@@ -187,13 +190,8 @@ public class Aircraft : Vessel
 			OnDamaged(int.MaxValue);
 			return;
 		};
-		nextPhaseTime += rtbPhasePeriod;
-		VesselPhase rtbPhase = new VesselPhase();
-		rtbPhase.owner = this;
-		rtbPhase.phaseType = EPhaseType.RTB;
-		rtbPhase.battleTime = nextPhaseTime;
-		ownPhases.Add(rtbPhase);
-		BattleManager.instance.AddPhase(rtbPhase);
+		nextMovePhaseTime += rtbPhasePeriod;
+		CreatePhase(EPhaseType.RTB, nextMovePhaseTime);
 	}
 }
 	

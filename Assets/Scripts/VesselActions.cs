@@ -27,26 +27,88 @@ public static class VesselActions
 		AERIAL_ASW = 64,
 	}
 
-	public static bool CheckWeapon(this Vessel vessel, Vessel target) 
+	public static bool CheckAircraft(this Vessel vessel, Vessel target)
 	{
 		if (target.isAlive == false) return false;
 
 		// Target is aircraft.
 		if (target.vesselType == EVesselType.AIRCRAFT)
 		{
-			// We don't allow ships to engage aircrafts directly in this game.
-			if (vessel.vesselType != EVesselType.AIRCRAFT) return false;
-			// If this aircraft is not a fighter, never engage other aircrafts actively.
+			for (int i = 0; i < vessel.aircrafts.Length; ++i)
+			{
+				if (vessel.aircrafts[i].aircraftType == EAircraftType.FIGHTER
+					&& vessel.aircrafts[i].kamikaze
+					&& vessel.aircraftSlots[i] > 0
+					&& vessel.aircraftLaunched[i] == false
+				)
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+		else if (target.vesselType == EVesselType.SS)
+		{
+			for (int i = 0; i < vessel.aircrafts.Length; ++i)
+			{
+				if (vessel.aircrafts[i].aircraftType == EAircraftType.ASW_BOMBER
+					&& vessel.aircrafts[i].kamikaze
+					&& vessel.aircraftSlots[i] > 0
+					&& vessel.aircraftLaunched[i] == false
+				)
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+		else 
+		{
+			for (int i = 0; i < vessel.aircrafts.Length; ++i)
+			{
+				if ((vessel.aircrafts[i].gunPower > 0 || vessel.aircrafts[i].torpedoPower > 0)
+					&& vessel.aircrafts[i].kamikaze
+					&& vessel.aircraftSlots[i] > 0
+					&& vessel.aircraftLaunched[i] == false
+				)
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+	}
+
+	public static bool CheckWeapon(this Vessel vessel, Vessel target, bool considerAircrafts) 
+	{
+		if (target.isAlive == false) return false;
+
+		// Target is aircraft.
+		if (target.vesselType == EVesselType.AIRCRAFT)
+		{
+			// We don't allow ships to engage aircrafts actively in this game.
+			// Exception is: vessels that carry kamikaze fighters. (anti-air missiles)
+			if (vessel.vesselType != EVesselType.AIRCRAFT)
+				return considerAircrafts && vessel.CheckAircraft(target);
+			
+			// If this aircraft is a fighter, never engage other aircrafts actively.
 			if ((vessel as Aircraft).aircraftType != EAircraftType.FIGHTER) return false;
+			
 			return vessel.CheckRange(target, EWeaponType.ANTI_AIR);
 		}
 		else if (target.vesselType == EVesselType.SS)
 		{
+			// If this vessel has kamikaze asw bombers. (anti-sub missiles)
+			if (vessel.vesselType != EVesselType.AIRCRAFT)
+				if (considerAircrafts && vessel.CheckAircraft(target))
+					return true;
+			
 			// Only vessels that have aswPower > 0 can attack subs.
 			if (vessel.aswPower == 0) return false;
 			if (vessel.vesselType == EVesselType.AIRCRAFT)
 				return CheckRange(vessel, target, EWeaponType.AERIAL_ASW);
-			return CheckRange(vessel, target, EWeaponType.ASW);
+			else
+				return CheckRange(vessel, target, EWeaponType.ASW);
 		}
 		else
 		{ 
@@ -61,6 +123,7 @@ public static class VesselActions
 			else
 			{
 				bool canFire = false;
+				canFire |= (considerAircrafts && vessel.CheckAircraft(target));
 				canFire |= CheckRange(vessel, target, EWeaponType.GUN);
 				canFire |= CheckRange(vessel, target, EWeaponType.TORPEDO);
 				return canFire;
@@ -92,11 +155,11 @@ public static class VesselActions
 		}
 	}
 
-	public static List<Vessel> GetTargets(this Vessel vessel, ETargetType targetTypes)
+	public static List<Vessel> GetTargets(this Vessel vessel, ETargetType targetTypes, bool considerAircrafts)
 	{
-		bool findSurf = (targetTypes | ETargetType.SURF) > 0;
-		bool findSub = (targetTypes | ETargetType.SUB) > 0;
-		bool findAir = (targetTypes | ETargetType.AIR) > 0;
+		bool findSurf = (targetTypes & ETargetType.SURF) > 0;
+		bool findSub = (targetTypes & ETargetType.SUB) > 0;
+		bool findAir = (targetTypes & ETargetType.AIR) > 0;
 		List<Vessel> result = new List<Vessel>();
 		if(findSurf || findSub)
 		{
@@ -105,12 +168,12 @@ public static class VesselActions
 				if (v.isAlive == false) continue;
 				if (v.vesselType == EVesselType.SS && findSub)
 				{
-					if(vessel.CheckWeapon(v) == true)
+					if(vessel.CheckWeapon(v, considerAircrafts) == true)
 						result.Add(v);
 				}
 				else
 				{
-					if(vessel.CheckWeapon(v) == true)
+					if (vessel.CheckWeapon(v, considerAircrafts) == true)
 						result.Add(v);
 				}
 			}
@@ -120,7 +183,7 @@ public static class VesselActions
 			foreach (Aircraft a in BattleManager.instance.sidesAC[1 - vessel.side])
 			{
 				if (a.isAlive == false) continue;
-				if (vessel.CheckWeapon(a) == true)
+				if (vessel.CheckWeapon(a, considerAircrafts) == true)
 					result.Add(a);
 			}
 		}
@@ -154,12 +217,13 @@ public static class VesselActions
 
 	public static Aircraft LaunchAircraft(this Vessel vessel, int slotIndex)
 	{
-		if (vessel.aircraftSlots[slotIndex] > 0)
+		int maxAircraftLaunched = vessel.GetMaxAircraftLaunched();
+		if (vessel.aircraftSlots[slotIndex] > 0 && maxAircraftLaunched > 0)
 		{
 			Aircraft aircraft = vessel.aircrafts[slotIndex];
 			Aircraft instance = UnityEngine.Object.Instantiate(aircraft, vessel.transform.position, vessel.transform.rotation) as Aircraft;
 			instance.gameObject.name = vessel.gameObject.name + "'s " + aircraft.gameObject.name + "<" + (slotIndex + 1).ToString() + ">";
-			instance.maxHp = instance.hp = Mathf.Min(vessel.aircraftSlots[slotIndex], vessel.GetMaxAircraftLaunched());
+			instance.maxHp = instance.hp = Mathf.Min(vessel.aircraftSlots[slotIndex], maxAircraftLaunched);
 			instance.side = vessel.side;
 			instance.carrier = vessel;
 			instance.carrierSlot = slotIndex;

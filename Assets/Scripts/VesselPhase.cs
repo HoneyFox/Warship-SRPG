@@ -3,11 +3,12 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
+[Flags]
 public enum EPhaseType
 {
-	MOVE,
-	ACTION,
-	RTB,
+	MOVE = 1,
+	ACTION = 2,
+	RTB = 4,
 }
 
 [Serializable]
@@ -23,6 +24,13 @@ public class VesselPhase : IComparable<VesselPhase>
 
 	public int CompareTo(VesselPhase other)
 	{
-		return this.battleTime.CompareTo(other.battleTime);
+		if (this.battleTime == other.battleTime)
+		{
+			return ((int)this.phaseType).CompareTo((int)other.phaseType);
+		}
+		else
+		{
+			return this.battleTime.CompareTo(other.battleTime);
+		}
 	}
 }
