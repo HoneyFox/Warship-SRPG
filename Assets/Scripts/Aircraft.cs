@@ -119,7 +119,7 @@ public class Aircraft : Vessel
 							hp = 0; 
 						Debug.Log("@" + vp.battleTime.ToString("F1") + ": "
 								  + this.gameObject.name + "(" + origHp.ToString() + "->" + hp.ToString() + ") attacked " + target.gameObject.name
-								  + " with depth-charges: " + damage.ToString()
+								  + (kamikaze ? ": " : " with depth-charges: ") + damage.ToString()
 								  + (isCritical ? " Critical!" : ""));
 
 						this.OnDamaged(0);
@@ -134,7 +134,7 @@ public class Aircraft : Vessel
 							hp = 0;
 						Debug.Log("@" + vp.battleTime.ToString("F1") + ": " 
 						          + this.gameObject.name + "(" + origHp.ToString() + "->" + hp.ToString() + ") attacked " + target.gameObject.name
-						          + " with bombs: " + damage.ToString()
+								  + (kamikaze ? ": " : " with bombs: ") + damage.ToString()
 						          + (isCritical ? " Critical!" : ""));
 						
 						this.OnDamaged(0);
@@ -149,7 +149,7 @@ public class Aircraft : Vessel
 							hp = 0;
 						Debug.Log("@" + vp.battleTime.ToString("F1") + ": " 
 						          + this.gameObject.name + "(" + origHp.ToString() + "->" + hp.ToString() + ") attacked " + target.gameObject.name
-						          + " with torpedos: " + damage.ToString()
+						          + (kamikaze ? ": " : " with torpedos: ") + damage.ToString()
 						          + (isCritical ? " Critical!" : ""));
 						this.OnDamaged(0);
 						target.OnDamaged(Mathf.Max(0, damage));

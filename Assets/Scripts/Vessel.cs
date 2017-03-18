@@ -174,19 +174,22 @@ public class Vessel : MonoBehaviour
 						}
 						if (hasLaunchedAircraft == false)
 						{
-							for (int i = 0; i < aircraftSlots.Length; ++i)
+							if (this.GetTargets(VesselActions.ETargetType.SURF, true).Count > 0)
 							{
-								if (aircrafts[i].aircraftType == EAircraftType.BOMBER || aircrafts[i].aircraftType == EAircraftType.TORPEDO_BOMBER)
+								for (int i = 0; i < aircraftSlots.Length; ++i)
 								{
-									Aircraft aircraft = this.LaunchAircraft(i);
-									if (aircraft != null)
+									if (aircrafts[i].aircraftType == EAircraftType.BOMBER || aircrafts[i].aircraftType == EAircraftType.TORPEDO_BOMBER)
 									{
-										Debug.Log("@" + vp.battleTime.ToString("F1") + ": "
-											  + this.gameObject.name + " launched " + aircrafts[i].gameObject.name
-											  + "x" + aircraft.hp.ToString()
-										);
-										hasLaunchedAircraft = true;
-										break;
+										Aircraft aircraft = this.LaunchAircraft(i);
+										if (aircraft != null)
+										{
+											Debug.Log("@" + vp.battleTime.ToString("F1") + ": "
+												  + this.gameObject.name + " launched " + aircrafts[i].gameObject.name
+												  + "x" + aircraft.hp.ToString()
+											);
+											hasLaunchedAircraft = true;
+											break;
+										}
 									}
 								}
 							}

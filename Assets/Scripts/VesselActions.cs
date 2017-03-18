@@ -171,7 +171,7 @@ public static class VesselActions
 					if(vessel.CheckWeapon(v, considerAircrafts) == true)
 						result.Add(v);
 				}
-				else
+				else if (v.vesselType != EVesselType.SS && findSurf)
 				{
 					if (vessel.CheckWeapon(v, considerAircrafts) == true)
 						result.Add(v);

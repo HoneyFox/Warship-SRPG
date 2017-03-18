@@ -48,6 +48,7 @@ public class SceneManager : MonoBehaviour {
 		"Prefabs/Ships/Carriers/Peter Strasser",
 		"Prefabs/Ships/Destroyers/Le Fantasque",
 		"Prefabs/Ships/Destroyers/Gyatt",
+		"Prefabs/Ships/Destroyers/Chang Chun",
 		"Prefabs/Ships/HeavyCruisers/Kumano",
 		"Prefabs/Ships/HeavyCruisers/Mogami",
 		"Prefabs/Ships/HeavyCruisers/Quincy",

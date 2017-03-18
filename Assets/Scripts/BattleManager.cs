@@ -115,11 +115,13 @@ public class BattleManager : MonoBehaviour
 			else
 			{
 				// Battle ends because no vessel is alive.
+				Debug.Log("Battle ends.");
 			}
 		}
 		else
 		{
 			// Battle ends because no vessel is alive.
+			Debug.Log("Battle ends.");
 		}
 	}
 
